@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "title": "python devloper",
+    "required_skills": [
+      "python",
+      "sql"
+    ],
+    "min_experience": "2",
+    "id": "90d8e3e1-a044-47af-97a6-6edfcb14ec0a",
+    "created_date": "2025-04-27T14:11:27.660645"
+  }
+]

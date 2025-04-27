@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "id": "841122496e31c7e0",
+    "name": "OBJECTIVE",
+    "email": "Kalyanidhangar1506@gmail.com",
+    "phone": "9860633563",
+    "skills": [
+      "r"
+    ],
+    "education": [
+      {
+        "degree": "Bachelor's",
+        "university": "",
+        "year": ""
+      },
+      {
+        "degree": "Master's",
+        "university": "",
+        "year": ""
+      }
+    ],
+    "experience_entries": [],
+    "experience_years": 0,
+    "resume_filename": "kalyani_resume.pdf",
+    "parsed_date": "2025-04-27T14:05:13.858266"
+  },
+  {
+    "id": "42dcd6dfb889e165",
+    "name": "Harshal Dhangar",
+    "email": "harshaldhangar90@gmail.com",
+    "phone": "9067731749",
+    "skills": [
+      "java",
+      "python",
+      "mysql",
+      "machine learning",
+      "r",
+      "html",
+      "sql"
+    ],
+    "education": [],
+    "experience_entries": [],
+    "experience_years": 0,
+    "resume_filename": "Resume.pdf",
+    "parsed_date": "2025-04-27T14:13:07.884866"
+  }
+]
