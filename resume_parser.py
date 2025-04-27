@@ -260,7 +260,6 @@ def parse_resume(file_path, original_filename):
     
     # Compile candidate data
     candidate_data = {
-        'id': os.urandom(8).hex(),
         'name': name,
         'email': email,
         'phone': phone,
@@ -269,7 +268,7 @@ def parse_resume(file_path, original_filename):
         'experience_entries': experience_entries,
         'experience_years': total_years,
         'resume_filename': original_filename,
-        'parsed_date': datetime.now().isoformat()
+        'parsed_date': datetime.now()
     }
     
     return candidate_data
