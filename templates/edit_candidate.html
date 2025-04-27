@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Candidate - Smart Resume Screener</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-file-earmark-person"></i> Smart Resume Screener
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('candidates') }}">Candidates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('job_description') }}">Job Descriptions</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0">Edit Candidate: {{ candidate.name }}</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('edit_candidate', candidate_id=candidate.id) }}" method="post">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ candidate.name }}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ candidate.email }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ candidate.phone }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="skills" class="form-label">Skills (comma separated)</label>
+                                <input type="text" class="form-control" id="skills" name="skills" value="{{ candidate.skills|join(', ') }}">
+                                <div class="form-text">Enter skills separated by commas (e.g., Python, SQL, JavaScript)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="experience_years" class="form-label">Years of Experience</label>
+                                <input type="number" class="form-control" id="experience_years" name="experience_years" value="{{ candidate.experience_years }}" step="0.5" min="0">
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('candidates') }}" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="mt-5 py-3 bg-dark text-center text-muted">
+        <div class="container">
+            <p class="mb-0">Smart Resume Screener &copy; 2023</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -223,35 +223,90 @@ def delete_candidate(candidate_id):
 def job_description():
     """Add or view job descriptions."""
     if request.method == 'POST':
-        job_data = {
-            'title': request.form.get('title'),
-            'required_skills': request.form.get('required_skills').split(','),
-            'min_experience': request.form.get('min_experience', 0)
-        }
+        # Parse skills from comma-separated string
+        skills_text = request.form.get('required_skills', '')
+        skills_list = [skill.strip().lower() for skill in skills_text.split(',') if skill.strip()]
         
-        # Clean and normalize the skills
-        job_data['required_skills'] = [skill.strip().lower() for skill in job_data['required_skills'] if skill.strip()]
+        # Parse min experience
+        try:
+            min_experience = float(request.form.get('min_experience', 0))
+        except ValueError:
+            min_experience = 0
         
-        # Save job description
-        job_id = save_job_description(job_data)
+        # Create new job description
+        new_job = JobDescription(
+            title=request.form.get('title'),
+            required_skills=skills_list,
+            min_experience=min_experience
+        )
+        
+        # Save to database
+        db.session.add(new_job)
+        db.session.commit()
         
         flash('Job description saved successfully!', 'success')
-        return redirect(url_for('ranking', job_id=job_id))
+        return redirect(url_for('ranking', job_id=new_job.id))
     
-    return render_template('job_description.html', job_descriptions=get_all_job_descriptions())
+    # Get all job descriptions for GET request
+    all_jobs = JobDescription.query.all()
+    return render_template('job_description.html', job_descriptions=[job.to_dict() for job in all_jobs])
 
-@app.route('/ranking/<job_id>')
-def ranking(job_id):
-    """Rank candidates based on a job description."""
-    job = get_job_description(job_id)
+@app.route('/job_description/<int:job_id>/edit', methods=['GET', 'POST'])
+def edit_job_description(job_id):
+    """Edit a job description."""
+    job = JobDescription.query.get(job_id)
+    
     if not job:
         flash('Job description not found', 'danger')
         return redirect(url_for('job_description'))
     
-    candidates = get_all_candidates()
-    ranked_candidates = rank_candidates(candidates, job)
+    if request.method == 'POST':
+        # Update job data
+        job.title = request.form.get('title')
+        
+        # Update skills - convert comma-separated string to list
+        skills_text = request.form.get('required_skills', '')
+        job.required_skills = [skill.strip().lower() for skill in skills_text.split(',') if skill.strip()]
+        
+        # Update minimum experience
+        try:
+            job.min_experience = float(request.form.get('min_experience', 0))
+        except ValueError:
+            job.min_experience = 0
+        
+        db.session.commit()
+        flash('Job description updated successfully!', 'success')
+        return redirect(url_for('job_description'))
     
-    return render_template('ranking.html', job=job, ranked_candidates=ranked_candidates)
+    # For GET requests, render the edit form
+    return render_template('edit_job.html', job=job.to_dict())
+
+@app.route('/job_description/<int:job_id>/delete', methods=['POST'])
+def delete_job_description(job_id):
+    """Delete a job description."""
+    job = JobDescription.query.get(job_id)
+    
+    if not job:
+        flash('Job description not found', 'danger')
+    else:
+        db.session.delete(job)
+        db.session.commit()
+        flash('Job description deleted successfully!', 'success')
+    
+    return redirect(url_for('job_description'))
+
+@app.route('/ranking/<int:job_id>')
+def ranking(job_id):
+    """Rank candidates based on a job description."""
+    job = JobDescription.query.get(job_id)
+    if not job:
+        flash('Job description not found', 'danger')
+        return redirect(url_for('job_description'))
+    
+    candidates = Candidate.query.all()
+    ranked_candidates = rank_candidates([c.to_dict() for c in candidates], job.to_dict())
+    
+    return render_template('ranking.html', job=job.to_dict(), ranked_candidates=ranked_candidates)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
