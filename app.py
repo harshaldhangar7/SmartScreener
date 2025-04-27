@@ -40,7 +40,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Database models
 class Candidate(db.Model):
     __tablename__ = 'candidates'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100))
@@ -51,10 +51,10 @@ class Candidate(db.Model):
     experience_entries = db.Column(db.JSON)  # List of experience objects
     resume_filename = db.Column(db.String(255))
     parsed_date = db.Column(db.DateTime, default=datetime.now)
-    
+
     def __repr__(self):
         return f"<Candidate(id={self.id}, name='{self.name}')>"
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -71,16 +71,16 @@ class Candidate(db.Model):
 
 class JobDescription(db.Model):
     __tablename__ = 'job_descriptions'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     required_skills = db.Column(db.JSON)  # List of required skills
     min_experience = db.Column(db.Float, default=0)
     created_date = db.Column(db.DateTime, default=datetime.now)
-    
+
     def __repr__(self):
         return f"<JobDescription(id={self.id}, title='{self.title}')>"
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -108,27 +108,27 @@ def upload_resume():
     if 'resume' not in request.files:
         flash('No file part', 'danger')
         return redirect(request.url)
-    
+
     file = request.files['resume']
-    
+
     if file.filename == '':
         flash('No selected file', 'danger')
         return redirect(request.url)
-    
+
     if file and allowed_file(file.filename):
         # Generate a unique filename to avoid collisions
         original_filename = secure_filename(file.filename)
         file_extension = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
-        
+
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(filepath)
-        
+
         try:
             # Parse the resume
             candidate_data = parse_resume(filepath, original_filename)
-            
-            # Save candidate data to database
+
+            # Create new candidate from parsed data
             new_candidate = Candidate(
                 name=candidate_data['name'],
                 email=candidate_data['email'],
@@ -137,15 +137,17 @@ def upload_resume():
                 experience_years=candidate_data['experience_years'],
                 education=candidate_data['education'],
                 experience_entries=candidate_data['experience_entries'],
-                resume_filename=candidate_data['resume_filename'],
+                resume_filename=original_filename,
                 parsed_date=datetime.now()
             )
+
+            # Save candidate data to database
             db.session.add(new_candidate)
             db.session.commit()
-            
+
             # Remove the file after parsing to save space
             os.remove(filepath)
-            
+
             flash('Resume uploaded and parsed successfully!', 'success')
             return redirect(url_for('candidates'))
         except Exception as e:
@@ -155,7 +157,7 @@ def upload_resume():
             if os.path.exists(filepath):
                 os.remove(filepath)
             return redirect(url_for('index'))
-    
+
     flash('Invalid file type. Please upload a PDF or DOCX file.', 'danger')
     return redirect(url_for('index'))
 
@@ -177,31 +179,31 @@ def candidate_details(candidate_id):
 def edit_candidate(candidate_id):
     """Edit a candidate's information."""
     candidate = Candidate.query.get(candidate_id)
-    
+
     if not candidate:
         flash('Candidate not found', 'danger')
         return redirect(url_for('candidates'))
-    
+
     if request.method == 'POST':
         # Update candidate data
         candidate.name = request.form.get('name')
         candidate.email = request.form.get('email')
         candidate.phone = request.form.get('phone')
-        
+
         # Update skills - convert comma-separated string to list
         skills_text = request.form.get('skills', '')
         candidate.skills = [skill.strip() for skill in skills_text.split(',') if skill.strip()]
-        
+
         # Update experience years
         try:
             candidate.experience_years = float(request.form.get('experience_years', 0))
         except ValueError:
             candidate.experience_years = 0
-        
+
         db.session.commit()
         flash('Candidate updated successfully!', 'success')
         return redirect(url_for('candidates'))
-    
+
     # For GET requests, render the edit form
     return render_template('edit_candidate.html', candidate=candidate.to_dict())
 
@@ -209,14 +211,14 @@ def edit_candidate(candidate_id):
 def delete_candidate(candidate_id):
     """Delete a candidate."""
     candidate = Candidate.query.get(candidate_id)
-    
+
     if not candidate:
         flash('Candidate not found', 'danger')
     else:
         db.session.delete(candidate)
         db.session.commit()
         flash('Candidate deleted successfully!', 'success')
-    
+
     return redirect(url_for('candidates'))
 
 @app.route('/job_description', methods=['GET', 'POST'])
@@ -226,27 +228,27 @@ def job_description():
         # Parse skills from comma-separated string
         skills_text = request.form.get('required_skills', '')
         skills_list = [skill.strip().lower() for skill in skills_text.split(',') if skill.strip()]
-        
+
         # Parse min experience
         try:
             min_experience = float(request.form.get('min_experience', 0))
         except ValueError:
             min_experience = 0
-        
+
         # Create new job description
         new_job = JobDescription(
             title=request.form.get('title'),
             required_skills=skills_list,
             min_experience=min_experience
         )
-        
+
         # Save to database
         db.session.add(new_job)
         db.session.commit()
-        
+
         flash('Job description saved successfully!', 'success')
         return redirect(url_for('ranking', job_id=new_job.id))
-    
+
     # Get all job descriptions for GET request
     all_jobs = JobDescription.query.all()
     return render_template('job_description.html', job_descriptions=[job.to_dict() for job in all_jobs])
@@ -255,29 +257,29 @@ def job_description():
 def edit_job_description(job_id):
     """Edit a job description."""
     job = JobDescription.query.get(job_id)
-    
+
     if not job:
         flash('Job description not found', 'danger')
         return redirect(url_for('job_description'))
-    
+
     if request.method == 'POST':
         # Update job data
         job.title = request.form.get('title')
-        
+
         # Update skills - convert comma-separated string to list
         skills_text = request.form.get('required_skills', '')
         job.required_skills = [skill.strip().lower() for skill in skills_text.split(',') if skill.strip()]
-        
+
         # Update minimum experience
         try:
             job.min_experience = float(request.form.get('min_experience', 0))
         except ValueError:
             job.min_experience = 0
-        
+
         db.session.commit()
         flash('Job description updated successfully!', 'success')
         return redirect(url_for('job_description'))
-    
+
     # For GET requests, render the edit form
     return render_template('edit_job.html', job=job.to_dict())
 
@@ -285,14 +287,14 @@ def edit_job_description(job_id):
 def delete_job_description(job_id):
     """Delete a job description."""
     job = JobDescription.query.get(job_id)
-    
+
     if not job:
         flash('Job description not found', 'danger')
     else:
         db.session.delete(job)
         db.session.commit()
         flash('Job description deleted successfully!', 'success')
-    
+
     return redirect(url_for('job_description'))
 
 @app.route('/ranking/<int:job_id>')
@@ -302,10 +304,10 @@ def ranking(job_id):
     if not job:
         flash('Job description not found', 'danger')
         return redirect(url_for('job_description'))
-    
+
     candidates = Candidate.query.all()
     ranked_candidates = rank_candidates([c.to_dict() for c in candidates], job.to_dict())
-    
+
     return render_template('ranking.html', job=job.to_dict(), ranked_candidates=ranked_candidates)
 
 if __name__ == '__main__':
