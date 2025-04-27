@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidates - Smart Resume Screener</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-file-earmark-person"></i> Smart Resume Screener
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('candidates') }}">Candidates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('job_description') }}">Job Descriptions</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="mb-4">All Candidates</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if candidates %}
+            <div class="mb-3">
+                <input type="text" id="candidateSearch" class="form-control" placeholder="Search candidates by name, skills, or experience...">
+            </div>
+            
+            <div class="row" id="candidatesContainer">
+                {% for candidate in candidates %}
+                <div class="col-lg-6 mb-4 candidate-card" 
+                     data-name="{{ candidate.name|lower }}" 
+                     data-skills="{{ candidate.skills|join(' ')|lower }}"
+                     data-experience="{{ candidate.experience_years }}">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ candidate.name }}</h5>
+                            <span class="badge bg-info">{{ candidate.experience_years }} Years</span>
+                        </div>
+                        <div class="card-body">
+                            {% if candidate.email or candidate.phone %}
+                            <p class="card-text">
+                                {% if candidate.email %}
+                                <i class="bi bi-envelope"></i> {{ candidate.email }}<br>
+                                {% endif %}
+                                {% if candidate.phone %}
+                                <i class="bi bi-telephone"></i> {{ candidate.phone }}
+                                {% endif %}
+                            </p>
+                            {% endif %}
+                            
+                            {% if candidate.skills %}
+                            <h6>Skills:</h6>
+                            <div class="skills-container">
+                                {% for skill in candidate.skills %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if candidate.education %}
+                            <h6 class="mt-3">Education:</h6>
+                            <ul class="list-group">
+                                {% for edu in candidate.education %}
+                                <li class="list-group-item bg-dark">
+                                    <strong>{{ edu.degree }}</strong>
+                                    {% if edu.university %} - {{ edu.university }}{% endif %}
+                                    {% if edu.year %} ({{ edu.year }}){% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            
+                            {% if candidate.experience_entries %}
+                            <h6 class="mt-3">Experience:</h6>
+                            <ul class="list-group">
+                                {% for exp in candidate.experience_entries %}
+                                <li class="list-group-item bg-dark">
+                                    <strong>{{ exp.title }}</strong> at {{ exp.company }}<br>
+                                    {{ exp.start_year }} - {{ exp.end_year }}
+                                    {% if exp.duration %} ({{ exp.duration }} years){% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <small class="text-muted">Uploaded: {{ candidate.parsed_date.split('T')[0] }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <h4 class="alert-heading">No candidates yet!</h4>
+                <p>Upload some resumes to get started.</p>
+                <hr>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Upload Resumes
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <footer class="mt-5 py-3 bg-dark text-center text-muted">
+        <div class="container">
+            <p class="mb-0">Smart Resume Screener &copy; 2023</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Search functionality
+        document.getElementById('candidateSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const candidates = document.querySelectorAll('.candidate-card');
+            
+            candidates.forEach(card => {
+                const name = card.dataset.name;
+                const skills = card.dataset.skills;
+                const experience = card.dataset.experience;
+                
+                const matches = 
+                    name.includes(searchTerm) || 
+                    skills.includes(searchTerm) ||
+                    experience.includes(searchTerm);
+                
+                card.style.display = matches ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
