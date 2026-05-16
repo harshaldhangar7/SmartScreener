@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+
+{% block title %}Ranking Analytics Dashboard - {{ job.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    transition: transform 0.2s;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+}
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+}
+
+.comparison-table {
+    font-size: 0.9rem;
+}
+
+.model-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="mb-2">
+                    <i class="bi bi-bar-chart-line me-2"></i>
+                    Ranking Analytics Dashboard
+                </h1>
+                <h5 class="mb-0 opacity-75">{{ job.title }}</h5>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="d-flex justify-content-lg-end justify-content-center mt-3 mt-lg-0">
+                    <a href="{{ url_for('ranking', job_id=job.id) }}" class="btn btn-light me-2">
+                        <i class="bi bi-arrow-left"></i> Back to Rankings
+                    </a>
+                    <a href="{{ url_for('ranking', job_id=job.id) }}" class="btn btn-outline-light" target="_blank">
+                        <i class="bi bi-box-arrow-up-right"></i> Open Rankings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Key Metrics Row -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card metric-card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-trophy text-warning" style="font-size: 2rem;"></i>
+                    <h3 class="mt-2 mb-1">{{ analytics.model_comparison.ai_avg }}%</h3>
+                    <p class="text-muted mb-0">AI Model Average Score</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card metric-card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear text-info" style="font-size: 2rem;"></i>
+                    <h3 class="mt-2 mb-1">{{ analytics.model_comparison.traditional_avg }}%</h3>
+                    <p class="text-muted mb-0">Traditional Model Average</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card metric-card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up-arrow text-success" style="font-size: 2rem;"></i>
+                    <h3 class="mt-2 mb-1">{{ analytics.model_comparison.difference }}%</h3>
+                    <p class="text-muted mb-0">AI Improvement</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card metric-card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                    <h3 class="mt-2 mb-1">{{ analytics.score_distribution.labels|length }}</h3>
+                    <p class="text-muted mb-0">Total Candidates</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        Score Distribution Comparison
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="scoreDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart me-2"></i>
+                        Skills Match Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="skillsAnalysisChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart-line me-2"></i>
+                        Experience Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="experienceDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart-fill me-2"></i>
+                        Education Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="educationDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 3 -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-star me-2"></i>
+                        Top 5 Candidates
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="topCandidatesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-scatter-chart me-2"></i>
+                        Experience vs Score Correlation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="correlationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Tables -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        Detailed Rankings Comparison
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Candidate</th>
+                                    <th>AI Score</th>
+                                    <th>Traditional Score</th>
+                                    <th>Difference</th>
+                                    <th>Experience</th>
+                                    <th>Skills Matched</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(analytics.score_distribution.labels|length) %}
+                                <tr>
+                                    <td>{{ i + 1 }}</td>
+                                    <td>{{ analytics.score_distribution.labels[i] }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ analytics.score_distribution.ai_scores[i] }}%</span>
+                                    </td>
+                                    <td>
+                                        {% if analytics.score_distribution.traditional_scores|length > i %}
+                                        <span class="badge bg-secondary">{{ analytics.score_distribution.traditional_scores[i] }}%</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if analytics.score_distribution.traditional_scores|length > i %}
+                                            {% set diff = (analytics.score_distribution.ai_scores[i] - analytics.score_distribution.traditional_scores[i]) %}
+                                            {% if diff > 0 %}
+                                                <span class="text-success">+{{ diff|round(1) }}%</span>
+                                            {% elif diff < 0 %}
+                                                <span class="text-danger">{{ diff|round(1) }}%</span>
+                                            {% else %}
+                                                <span class="text-muted">0%</span>
+                                            {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if analytics.correlation_data.experience|length > i %}
+                                        {{ analytics.correlation_data.experience[i] }} years
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ analytics.skills_analysis.matched // analytics.score_distribution.labels|length }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="analytics-data" type="application/json">
+{{ {
+    'scoreLabels': analytics.score_distribution.labels,
+    'aiScores': analytics.score_distribution.ai_scores,
+    'traditionalScores': analytics.score_distribution.traditional_scores,
+    'skillsMatched': analytics.skills_analysis.matched,
+    'skillsMissing': analytics.skills_analysis.missing,
+    'experienceRanges': analytics.experience_distribution.ranges,
+    'experienceCounts': analytics.experience_distribution.counts,
+    'educationLabels': analytics.education_distribution.labels,
+    'educationCounts': analytics.education_distribution.counts,
+    'topCandidates': analytics.top_candidates.names,
+    'topScores': analytics.top_candidates.scores,
+    'correlationExperience': analytics.correlation_data.experience,
+    'correlationScores': analytics.correlation_data.scores
+} | tojson }}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get data from the script tag
+    const analyticsData = JSON.parse(document.getElementById('analytics-data').textContent);
+    console.log('Analytics data loaded:', analyticsData);
+
+    // Score Distribution Chart
+    try {
+        const scoreCtx = document.getElementById('scoreDistributionChart');
+        if (scoreCtx) {
+            const scoreChart = new Chart(scoreCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: analyticsData.scoreLabels || ['No Data'],
+                    datasets: [{
+                        label: 'AI Enhanced Score (%)',
+                        data: analyticsData.aiScores || [0],
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Traditional Score (%)',
+                        data: analyticsData.traditionalScores || [0],
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Match Score (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Candidates'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            console.log('Score distribution chart created successfully');
+        }
+    } catch (error) {
+        console.error('Error creating score distribution chart:', error);
+    }
+
+    // Skills Analysis Chart
+    const skillsCtx = document.getElementById('skillsAnalysisChart').getContext('2d');
+    new Chart(skillsCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Matched Skills', 'Missing Skills'],
+            datasets: [{
+                data: [analyticsData.skillsMatched, analyticsData.skillsMissing],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Experience Distribution Chart
+    const expCtx = document.getElementById('experienceDistributionChart').getContext('2d');
+    new Chart(expCtx, {
+        type: 'bar',
+        data: {
+            labels: analyticsData.experienceRanges,
+            datasets: [{
+                label: 'Number of Candidates',
+                data: analyticsData.experienceCounts,
+                backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                borderColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Candidates'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Experience Range (Years)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Education Distribution Chart
+    const eduCtx = document.getElementById('educationDistributionChart').getContext('2d');
+    new Chart(eduCtx, {
+        type: 'pie',
+        data: {
+            labels: analyticsData.educationLabels,
+            datasets: [{
+                data: analyticsData.educationCounts,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 205, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Top Candidates Chart
+    const topCtx = document.getElementById('topCandidatesChart').getContext('2d');
+    new Chart(topCtx, {
+        type: 'bar',
+        data: {
+            labels: analyticsData.topCandidates,
+            datasets: [{
+                label: 'Match Score (%)',
+                data: analyticsData.topScores,
+                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Match Score (%)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Correlation Chart
+    const corrCtx = document.getElementById('correlationChart').getContext('2d');
+    new Chart(corrCtx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Experience vs Score',
+                data: analyticsData.correlationExperience.map((exp, i) => ({
+                    x: exp,
+                    y: analyticsData.correlationScores[i]
+                })),
+                backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                borderColor: 'rgba(153, 102, 255, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Years of Experience'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Match Score (%)'
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

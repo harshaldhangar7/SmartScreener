@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Candidate - {{ candidate.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0">Edit Candidate: {{ candidate.name }}</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('edit_candidate', candidate_id=candidate.id) }}" method="post">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ candidate.name }}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ candidate.email }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ candidate.phone }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="skills" class="form-label">Skills (comma separated)</label>
+                                <input type="text" class="form-control" id="skills" name="skills" value="{{ candidate.skills|join(', ') }}">
+                                <div class="form-text">Enter skills separated by commas (e.g., Python, SQL, JavaScript)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="experience_years" class="form-label">Years of Experience</label>
+                                <input type="number" class="form-control" id="experience_years" name="experience_years" value="{{ candidate.experience_years }}" step="0.5" min="0">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Education</label>
+                                <div id="candidate-education-list">
+                                    {% if candidate.education and candidate.education|length > 0 %}
+                                        {% for edu in candidate.education %}
+                                            <div class="education-entry border rounded p-2 mb-2">
+                                                <div class="row g-2">
+                                                    <div class="col-md-4">
+                                                        <input type="text" class="form-control" name="education_degrees[]" placeholder="Degree (e.g., B.Tech, MSc)" value="{% if edu is mapping %}{{ edu.degree }}{% else %}{{ edu }}{% endif %}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <input type="text" class="form-control" name="education_fields[]" placeholder="Field (e.g., Computer Science)" value="{% if edu is mapping %}{{ edu.field }}{% endif %}">
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <input type="text" class="form-control" name="education_universities[]" placeholder="University" value="{% if edu is mapping %}{{ edu.university }}{% endif %}">
+                                                    </div>
+                                                    <div class="col-md-1">
+                                                        <input type="text" class="form-control" name="education_years[]" placeholder="Year" value="{% if edu is mapping %}{{ edu.year }}{% endif %}">
+                                                    </div>
+                                                </div>
+                                                <div class="text-end mt-2">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.education-entry').remove()">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="education-entry border rounded p-2 mb-2">
+                                            <div class="row g-2">
+                                                <div class="col-md-4">
+                                                    <input type="text" class="form-control" name="education_degrees[]" placeholder="Degree (e.g., B.Tech, MSc)">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="text" class="form-control" name="education_fields[]" placeholder="Field (e.g., Computer Science)">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <input type="text" class="form-control" name="education_universities[]" placeholder="University">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <input type="text" class="form-control" name="education_years[]" placeholder="Year">
+                                                </div>
+                                            </div>
+                                            <div class="text-end mt-2">
+                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.education-entry').remove()">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addEducationRow()">
+                                    <i class="bi bi-plus-circle"></i> Add Education
+                                </button>
+                                <div class="form-text">Edit candidate degrees, fields, universities, and graduation years.</div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('candidates') }}" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function addEducationRow() {
+        const container = document.getElementById('candidate-education-list');
+        const div = document.createElement('div');
+        div.className = 'education-entry border rounded p-2 mb-2';
+        div.innerHTML = `
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="education_degrees[]" placeholder="Degree (e.g., B.Tech, MSc)">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="education_fields[]" placeholder="Field (e.g., Computer Science)">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="education_universities[]" placeholder="University">
+                </div>
+                <div class="col-md-1">
+                    <input type="text" class="form-control" name="education_years[]" placeholder="Year">
+                </div>
+            </div>
+            <div class="text-end mt-2">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.education-entry').remove()">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+    </script>
+{% endblock %}

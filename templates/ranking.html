@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+
+{% block title %}AI Rankings - {{ job.title }} - Smart Resume Screener{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ... (CSS styles are correct, so they remain unchanged) ... */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="ranking-header text-center">
+        <h1>
+            <i class="bi bi-robot me-2"></i>
+            AI-Enhanced Rankings
+        </h1>
+        <p>{{ job.title }} • {{ ranked_candidates|length }} candidates analyzed</p>
+        <div class="ai-indicator" title="AI Analysis Active"></div>
+    </div>
+
+    <div class="model-switcher">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <h5 class="mb-2">
+                    <i class="bi bi-cpu me-2"></i>
+                    Analysis Model
+                </h5>
+                <p class="mb-0 text-muted">Choose the ranking algorithm</p>
+            </div>
+            <div class="col-md-5">
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="model" id="ai_enhanced" value="ai_enhanced"
+                             {% if model_type == 'ai_enhanced' %}checked{% endif %}>
+                    <label class="btn btn-outline-primary" for="ai_enhanced">
+                        <i class="bi bi-robot me-1"></i>AI Enhanced
+                    </label>
+
+                    <input type="radio" class="btn-check" name="model" id="traditional" value="traditional"
+                             {% if model_type == 'traditional' %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="traditional">
+                        <i class="bi bi-gear me-1"></i>Traditional
+                    </label>
+
+                    <input type="radio" class="btn-check" name="model" id="baseline" value="baseline"
+                             {% if model_type == 'baseline' %}checked{% endif %}>
+                    <label class="btn btn-outline-info" for="baseline">
+                        <i class="bi bi-speedometer me-1"></i>Baseline
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-3 text-end">
+                <a href="{{ url_for('ranking_dashboard', job_id=job.id) }}" class="btn btn-success" target="_blank">
+                    <i class="bi bi-bar-chart-line me-1"></i>
+                    Analytics Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="job-requirements">
+                <h4 class="mb-3">
+                    <i class="bi bi-list-check me-2"></i>
+                    Job Requirements
+                </h4>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Job Requirements</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Required Skills:</h6>
+                                <div>
+                                    {% for skill in job.required_skills %}
+                                        <span class="badge bg-primary me-1 mb-1">{{ skill }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Minimum Experience:</h6>
+                                <p>{{ job.min_experience }} years</p>
+                                
+                                <h6>Required Education:</h6>
+                                <div>
+                                    {% for edu in job.required_education %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-warning text-dark">
+                                                {{ edu.degree|title }}
+                                                {% if edu.field %}
+                                                    in {{ edu.field }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            {% if ranked_candidates %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <canvas id="rankingChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="row">
+                    {% for ranked in ranked_candidates %}
+                    <div class="col-md-6 mb-4" id="candidate-{{ ranked.candidate.id }}">
+                        <div class="card h-100 {% if loop.index == 1 %}border-success{% endif %}">
+                            <div class="card-header d-flex justify-content-between align-items-center {% if loop.index == 1 %}bg-success text-white{% endif %}">
+                                <h5 class="mb-0">{{ loop.index }}. {{ ranked.candidate.name }}</h5>
+                                <span class="badge {% if loop.index == 1 %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                    {{ (ranked.total_score * 100)|round(1) }}% Match
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress mb-3" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar"
+                                         style="width: {{ (ranked.total_score * 100)|round(1) }}%;"
+                                         aria-valuenow="{{ (ranked.total_score * 100)|round(1) }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                         {{ (ranked.total_score * 100)|round(1) }}%
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-4">
+                                        <h6>Skills Match:</h6>
+                                        <div class="progress" style="height: 15px;">
+                                            <div class="progress-bar bg-primary" role="progressbar"
+                                                 style="width: {{ (ranked.skill_score * 100)|round(1) }}%;"
+                                                 aria-valuenow="{{ (ranked.skill_score * 100)|round(1) }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                 {{ (ranked.skill_score * 100)|round(1) }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <h6>Experience Match:</h6>
+                                        <div class="progress" style="height: 15px;">
+                                            <div class="progress-bar bg-info" role="progressbar"
+                                                 style="width: {{ (ranked.exp_score * 100)|round(1) }}%;"
+                                                 aria-valuenow="{{ (ranked.exp_score * 100)|round(1) }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                 {{ (ranked.exp_score * 100)|round(1) }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <h6>Semantic Similarity:</h6>
+                                        <div class="progress" style="height: 15px;">
+                                            <div class="progress-bar bg-secondary" role="progressbar"
+                                                 style="width: {{ (ranked.semantic_similarity_score * 100)|round(1) }}%;"
+                                                 aria-valuenow="{{ (ranked.semantic_similarity_score * 100)|round(1) }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                 {{ (ranked.semantic_similarity_score * 100)|round(1) }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6>Skill Analysis:</h6>
+                                <div class="skills-container mb-3">
+                                    {% if ranked.matched_skills.matched %}
+                                        {% for match in ranked.matched_skills.matched %}
+                                            <span class="badge bg-success me-1 mb-1">
+                                                {{ match.required }}
+                                                {% if match.required|lower != match.candidate|lower %}
+                                                    ≈ {{ match.candidate }}
+                                                {% endif %}
+                                            </span>
+                                        {% endfor %}
+                                    {% endif %}
+
+                                    {% if ranked.matched_skills.missing %}
+                                        {% for skill in ranked.matched_skills.missing %}
+                                            <span class="badge bg-danger me-1 mb-1" title="Missing Skill">
+                                                {{ skill }}
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        {% if not ranked.matched_skills.matched %}
+                                            <span class="text-muted">No required skills to match.</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+
+                                <h6>Experience: {{ ranked.candidate.experience_years }} years</h6>
+
+                                {% if ranked.candidate.education %}
+                                    <h6>Education:</h6>
+                                    <div class="mb-3">
+                                        <div class="progress mb-2" style="height: 15px;">
+                                            <div class="progress-bar bg-warning" role="progressbar"
+                                                 style="width: {{ (ranked.edu_score * 100)|round(1) }}%;"
+                                                 aria-valuenow="{{ (ranked.edu_score * 100)|round(1) }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                 {{ (ranked.edu_score * 100)|round(1) }}%
+                                            </div>
+                                        </div>
+
+                                        <div class="education-analytics">
+                                            {% for detail in ranked.edu_analytics.details %}
+                                                <div class="card bg-dark mb-2">
+                                                    <div class="card-body p-2">
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <small class="text-muted">Required:</small><br>
+                                                                <strong>{{ detail.required_degree }}</strong>
+                                                                {% if detail.required_field %}
+                                                                    in {{ detail.required_field }}
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <small class="text-muted">Candidate:</small><br>
+                                                                <strong>{{ detail.candidate_degree }}</strong>
+                                                                {% if detail.candidate_field %}
+                                                                    in {{ detail.candidate_field }}
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col-md-4">
+                                                                <small class="text-muted">Level Match:</small>
+                                                                <div class="progress" style="height: 10px;">
+                                                                    <div class="progress-bar bg-info" role="progressbar"
+                                                                         style="width: {{ (detail.level_score * 100)|round(1) }}%;">
+                                                                    </div>
+                                                                </div>
+                                                                <small>{{ (detail.level_score * 100)|round(1) }}%</small>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <small class="text-muted">Field Match:</small>
+                                                                <div class="progress" style="height: 10px;">
+                                                                    <div class="progress-bar bg-success" role="progressbar"
+                                                                         style="width: {{ (detail.field_score * 100)|round(1) }}%;">
+                                                                    </div>
+                                                                </div>
+                                                                <small>{{ (detail.field_score * 100)|round(1) }}%</small>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <small class="text-muted">Overall Match:</small>
+                                                                <div class="progress" style="height: 10px;">
+                                                                    <div class="progress-bar bg-warning" role="progressbar"
+                                                                         style="width: {{ (detail.match_score * 100)|round(1) }}%;">
+                                                                    </div>
+                                                                </div>
+                                                                <small>{{ (detail.match_score * 100)|round(1) }}%</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <ul class="list-group">
+                                        {% for edu in ranked.candidate.education %}
+                                        <li class="list-group-item bg-dark">
+                                            {{ edu.degree }}
+                                            {% if edu.university %} - {{ edu.university }}{% endif %}
+                                            {% if edu.year %} ({{ edu.year }}){% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+
+                                <!-- Explanation Section -->
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-info btn-sm w-100" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#explanation-{{ ranked.candidate.id }}" aria-expanded="false"
+                                            aria-controls="explanation-{{ ranked.candidate.id }}">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Why This Ranking?
+                                    </button>
+                                    <div class="collapse mt-2" id="explanation-{{ ranked.candidate.id }}">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title">
+                                                    <i class="bi bi-lightbulb text-warning me-1"></i>
+                                                    Ranking Analysis for {{ ranked.candidate.name }}
+                                                </h6>
+
+                                                <div class="row g-3">
+                                                    <!-- Skills Analysis -->
+                                                    <div class="col-md-6">
+                                                        <div class="p-2 border rounded">
+                                                            <h6 class="text-primary mb-2">
+                                                                <i class="bi bi-tools me-1"></i>
+                                                                Skills Analysis
+                                                            </h6>
+                                                            <div class="mb-2">
+                                                                <strong>Score: {{ (ranked.skill_score * 100)|round(1) }}%</strong>
+                                                            </div>
+                                                            {% if ranked.matched_skills.matched %}
+                                                                <div class="mb-2">
+                                                                    <small class="text-success">
+                                                                        <i class="bi bi-check-circle me-1"></i>
+                                                                        Matched Skills ({{ ranked.matched_skills.matched|length }}):
+                                                                    </small>
+                                                                    <div class="mt-1">
+                                                                        {% for match in ranked.matched_skills.matched %}
+                                                                            <span class="badge bg-success me-1 mb-1">{{ match.required }}</span>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                            {% if ranked.matched_skills.missing %}
+                                                                <div class="mb-2">
+                                                                    <small class="text-danger">
+                                                                        <i class="bi bi-x-circle me-1"></i>
+                                                                        Missing Skills ({{ ranked.matched_skills.missing|length }}):
+                                                                    </small>
+                                                                    <div class="mt-1">
+                                                                        {% for skill in ranked.matched_skills.missing %}
+                                                                            <span class="badge bg-danger me-1 mb-1">{{ skill }}</span>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                            <small class="text-muted">
+                                                                Skills matching contributes {{ "%.1f"|format(ranked.skill_score * 40) }}% to total score
+                                                            </small>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Experience Analysis -->
+                                                    <div class="col-md-6">
+                                                        <div class="p-2 border rounded">
+                                                            <h6 class="text-info mb-2">
+                                                                <i class="bi bi-briefcase me-1"></i>
+                                                                Experience Analysis
+                                                            </h6>
+                                                            <div class="mb-2">
+                                                                <strong>Score: {{ (ranked.exp_score * 100)|round(1) }}%</strong>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <small>Candidate has <strong>{{ ranked.candidate.experience_years }} years</strong> of experience</small><br>
+                                                                <small>Job requires <strong>{{ job.min_experience }} years</strong> minimum</small>
+                                                            </div>
+                                                            {% if ranked.candidate.experience_years >= job.min_experience %}
+                                                                <small class="text-success">
+                                                                    <i class="bi bi-check-circle me-1"></i>
+                                                                    Meets or exceeds experience requirements
+                                                                </small>
+                                                            {% else %}
+                                                                <small class="text-warning">
+                                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                                    Below minimum experience requirement
+                                                                </small>
+                                                            {% endif %}
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                Experience matching contributes {{ "%.1f"|format(ranked.exp_score * 25) }}% to total score
+                                                            </small>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Education Analysis -->
+                                                    <div class="col-md-6">
+                                                        <div class="p-2 border rounded">
+                                                            <h6 class="text-warning mb-2">
+                                                                <i class="bi bi-mortarboard me-1"></i>
+                                                                Education Analysis
+                                                            </h6>
+                                                            <div class="mb-2">
+                                                                <strong>Score: {{ (ranked.edu_score * 100)|round(1) }}%</strong>
+                                                            </div>
+                                                            {% if ranked.candidate.education %}
+                                                                <div class="mb-2">
+                                                                    <small>Candidate's Education:</small>
+                                                                    <ul class="list-unstyled mb-1">
+                                                                        {% for edu in ranked.candidate.education %}
+                                                                            <li class="small">
+                                                                                <strong>{{ edu.degree }}</strong>
+                                                                                {% if edu.university %} from {{ edu.university }}{% endif %}
+                                                                                {% if edu.year %} ({{ edu.year }}){% endif %}
+                                                                            </li>
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </div>
+                                                            {% endif %}
+                                                            <div class="mb-2">
+                                                                <small>Job Requirements:</small>
+                                                                <div class="mt-1">
+                                                                    {% for edu_req in job.required_education %}
+                                                                        <span class="badge bg-warning text-dark me-1 mb-1">
+                                                                            {{ edu_req.degree|title }}
+                                                                            {% if edu_req.field %} in {{ edu_req.field }}{% endif %}
+                                                                        </span>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
+                                                            <small class="text-muted">
+                                                                Education matching contributes {{ "%.1f"|format(ranked.edu_score * 20) }}% to total score
+                                                            </small>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Semantic Similarity Analysis -->
+                                                    <div class="col-md-6">
+                                                        <div class="p-2 border rounded">
+                                                            <h6 class="text-secondary mb-2">
+                                                                <i class="bi bi-robot me-1"></i>
+                                                                Semantic Similarity
+                                                            </h6>
+                                                            <div class="mb-2">
+                                                                <strong>Score: {{ (ranked.semantic_similarity_score * 100)|round(1) }}%</strong>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <small>This measures how well the candidate's overall profile aligns with the job description using AI-powered semantic analysis.</small>
+                                                            </div>
+                                                            {% if ranked.semantic_similarity_score >= 0.7 %}
+                                                                <small class="text-success">
+                                                                    <i class="bi bi-check-circle me-1"></i>
+                                                                    Strong semantic alignment with job requirements
+                                                                </small>
+                                                            {% elif ranked.semantic_similarity_score >= 0.5 %}
+                                                                <small class="text-warning">
+                                                                    <i class="bi bi-dash-circle me-1"></i>
+                                                                    Moderate semantic alignment
+                                                                </small>
+                                                            {% else %}
+                                                                <small class="text-danger">
+                                                                    <i class="bi bi-x-circle me-1"></i>
+                                                                    Low semantic alignment
+                                                                </small>
+                                                            {% endif %}
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                Semantic similarity contributes {{ "%.1f"|format(ranked.semantic_similarity_score * 15) }}% to total score
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Overall Assessment -->
+                                                <div class="mt-3 p-3 bg-primary bg-opacity-10 rounded">
+                                                    <h6 class="mb-2">
+                                                        <i class="bi bi-trophy text-primary me-1"></i>
+                                                        Overall Assessment
+                                                    </h6>
+                                                    <div class="row">
+                                                        <div class="col-md-8">
+                                                            {% if ranked.total_score >= 0.8 %}
+                                                                <strong class="text-success">Excellent Match</strong>
+                                                                <p class="mb-1 small">This candidate is highly qualified and strongly recommended for the position.</p>
+                                                            {% elif ranked.total_score >= 0.6 %}
+                                                                <strong class="text-warning">Good Match</strong>
+                                                                <p class="mb-1 small">This candidate meets most requirements and should be considered for an interview.</p>
+                                                            {% elif ranked.total_score >= 0.4 %}
+                                                                <strong class="text-info">Moderate Match</strong>
+                                                                <p class="mb-1 small">This candidate has some relevant qualifications but may need additional training.</p>
+                                                            {% else %}
+                                                                <strong class="text-danger">Low Match</strong>
+                                                                <p class="mb-1 small">This candidate may not meet the core requirements for this position.</p>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="col-md-4 text-end">
+                                                            <div class="h4 mb-0 text-primary">{{ (ranked.total_score * 100)|round(1) }}%</div>
+                                                            <small class="text-muted">Overall Score</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <small class="text-muted">{{ ranked.candidate.email }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    <h4 class="alert-heading">No candidates to rank!</h4>
+                    <p>Upload some resumes first to rank candidates against this job description.</p>
+                    <hr>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload Resumes
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Traditional Rankings Section -->
+    {% if ai_ranked_candidates and traditional_ranked_candidates %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="traditional-analysis-section">
+                <h2 class="text-center mb-4">
+                    <i class="bi bi-gear me-2"></i>
+                    Traditional Analysis Comparison
+                </h2>
+                <p class="text-center text-muted mb-4">Compare AI-enhanced rankings with traditional semantic model results</p>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h4 class="text-primary mb-3">
+                            <i class="bi bi-robot me-2"></i>
+                            AI-Enhanced Rankings
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Candidate</th>
+                                        <th>Score</th>
+                                        <th>AI Insights</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ranked in ai_ranked_candidates[:10] %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ ranked.candidate.name }}</td>
+                                        <td>{{ (ranked.total_score * 100)|round(1) }}%</td>
+                                        <td>
+                                            {% if ranked.has_ai_analysis %}
+                                                <span class="badge bg-success">Analyzed</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">No AI</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h4 class="text-info mb-3">
+                            <i class="bi bi-cpu me-2"></i>
+                            Traditional Rankings
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Candidate</th>
+                                        <th>Score</th>
+                                        <th>Components</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ranked in traditional_ranked_candidates[:10] %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ ranked.candidate.name }}</td>
+                                        <td>{{ (ranked.total_score * 100)|round(1) }}%</td>
+                                        <td>
+                                            <small>
+                                                Skills: {{ (ranked.skill_score * 100)|round(1) }}%<br>
+                                                Exp: {{ (ranked.exp_score * 100)|round(1) }}%<br>
+                                                Edu: {{ (ranked.edu_score * 100)|round(1) }}%
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ranking Differences Analysis -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5 class="text-center mb-3">Ranking Differences Analysis</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    {% set ai_dict = {} %}
+                                    {% for ranked in ai_ranked_candidates %}
+                                        {% set _ = ai_dict.update({ranked.candidate.id: {'rank': loop.index, 'score': ranked.total_score}}) %}
+                                    {% endfor %}
+
+                                    {% set trad_dict = {} %}
+                                    {% for ranked in traditional_ranked_candidates %}
+                                        {% set _ = trad_dict.update({ranked.candidate.id: {'rank': loop.index, 'score': ranked.total_score}}) %}
+                                    {% endfor %}
+
+                                    {% set differences = [] %}
+                                    {% for candidate in ai_ranked_candidates %}
+                                        {% set ai_rank = ai_dict[candidate.candidate.id].rank %}
+                                        {% set trad_rank = trad_dict[candidate.candidate.id].rank %}
+                                        {% set rank_diff = trad_rank - ai_rank %}
+                                        {% set score_diff = (ai_dict[candidate.candidate.id].score - trad_dict[candidate.candidate.id].score) * 100 %}
+                                        {% set _ = differences.append({'name': candidate.candidate.name, 'ai_rank': ai_rank, 'trad_rank': trad_rank, 'rank_diff': rank_diff, 'score_diff': score_diff}) %}
+                                    {% endfor %}
+
+                                    {% for diff in differences[:5] %}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 {% if diff.rank_diff > 2 %}border-success{% elif diff.rank_diff < -2 %}border-danger{% else %}border-warning{% endif %}">
+                                            <div class="card-body text-center">
+                                                <h6>{{ diff.name }}</h6>
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <small class="text-muted">AI Rank</small>
+                                                        <div class="h5 mb-0">{{ diff.ai_rank }}</div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Traditional Rank</small>
+                                                        <div class="h5 mb-0">{{ diff.trad_rank }}</div>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <small class="text-muted">Rank Difference</small>
+                                                {% if diff.rank_diff > 0 %}
+                                                    <div class="text-success">
+                                                        <i class="bi bi-arrow-up"></i> +{{ diff.rank_diff }}
+                                                    </div>
+                                                {% elif diff.rank_diff < 0 %}
+                                                    <div class="text-danger">
+                                                        <i class="bi bi-arrow-down"></i> {{ diff.rank_diff }}
+                                                    </div>
+                                                {% else %}
+                                                    <div class="text-muted">
+                                                        <i class="bi bi-dash"></i> No change
+                                                    </div>
+                                                {% endif %}
+                                                <small class="text-muted">Score Diff: {{ diff.score_diff|round(1) }}%</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+    
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle model switching
+    const modelRadios = document.querySelectorAll('input[name="model"]');
+    modelRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const model = this.value;
+            const url = new URL(window.location);
+            url.searchParams.set('model', model);
+            window.location.href = url.toString();
+        });
+    });
+});
+</script>
+{% if ranked_candidates %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Prepare data for chart in a more efficient way
+    const rankedData = [
+        {% for ranked in ranked_candidates[:7] %}
+            {
+                name: {{ ranked.candidate.name|tojson }},
+                total: {{ (ranked.total_score * 100)|round(1) }},
+                skill: {{ (ranked.skill_score * 100)|round(1) }},
+                exp: {{ (ranked.exp_score * 100)|round(1) }},
+                edu: {{ (ranked.edu_score * 100)|round(1) }},
+                semantic: {{ (ranked.semantic_similarity_score * 100)|round(1) }}
+            }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    if (rankedData.length === 0) {
+        // No data to display
+        return;
+    }
+
+    const labels = rankedData.map(d => d.name);
+    const totalScores = rankedData.map(d => d.total);
+    const skillScores = rankedData.map(d => d.skill);
+    const expScores = rankedData.map(d => d.exp);
+    const eduScores = rankedData.map(d => d.edu);
+    const semanticScores = rankedData.map(d => d.semantic);
+
+    // Create chart
+    const ctx = document.getElementById('rankingChart').getContext('2d');
+    const rankingChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total Match (%)',
+                    data: totalScores,
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Skills Match (%)',
+                    data: skillScores,
+                    backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Experience Match (%)',
+                    data: expScores,
+                    backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                    borderColor: 'rgba(23, 162, 184, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Education Match (%)',
+                    data: eduScores,
+                    backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Semantic Similarity (%)',
+                    data: semanticScores,
+                    backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Match Score (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Candidates'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Candidate Ranking Scores'
+                },
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Smart Resume Screener{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+    
+    .workflow-step {
+        position: relative;
+        padding: 20px;
+        border-radius: 15px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        transition: all 0.3s ease;
+    }
+    
+    .workflow-step:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(31, 38, 135, 0.4);
+    }
+    
+    .workflow-step.completed::before {
+        content: '✓';
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 30px;
+        height: 30px;
+        background: var(--gradient-success);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    
+    .quick-action-btn {
+        background: var(--gradient-primary);
+        border: none;
+        border-radius: 25px;
+        padding: 12px 25px;
+        color: white;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+    
+    .quick-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .recent-activity {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .activity-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 18px;
+    }
+    
+    .activity-upload { background: var(--gradient-success); }
+    .activity-job { background: var(--gradient-warning); }
+    .activity-ranking { background: var(--gradient-secondary); }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4 text-center">
+                <h1 class="mb-3">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    Smart Resume Screener Dashboard
+                </h1>
+                <p class="lead mb-0">AI-Powered Recruitment Intelligence Platform</p>
+                <div class="ai-indicator" title="AI Analysis Active"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="dashboard-grid">
+        <div class="stats-card">
+            <div class="stats-number" id="totalCandidates">{{ stats.total_candidates or 0 }}</div>
+            <h5>Total Candidates</h5>
+            <small class="text-muted">
+                <i class="bi bi-arrow-up text-success"></i>
+                +{{ stats.new_candidates_today or 0 }} today
+            </small>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-number" id="totalJobs">{{ stats.total_jobs or 0 }}</div>
+            <h5>Active Jobs</h5>
+            <small class="text-muted">
+                <i class="bi bi-briefcase"></i>
+                {{ stats.jobs_with_candidates or 0 }} with candidates
+            </small>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-number" id="aiAnalyzed">{{ stats.ai_analyzed or 0 }}</div>
+            <h5>AI Analyzed</h5>
+            <small class="text-muted">
+                <i class="bi bi-robot text-info"></i>
+                {{ ((stats.ai_analyzed / stats.total_candidates * 100) if stats.total_candidates > 0 else 0)|round(1) }}% coverage
+            </small>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-number" id="avgQuality">{{ stats.avg_quality_score or 0 }}</div>
+            <h5>Avg Quality Score</h5>
+            <small class="text-muted">
+                <i class="bi bi-star-fill text-warning"></i>
+                Based on AI analysis
+            </small>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-number" id="avgTraditional">{{ stats.avg_traditional_score or 0 }}</div>
+            <h5>Avg Traditional Score</h5>
+            <small class="text-muted">
+                <i class="bi bi-gear text-info"></i>
+                Skills & experience based
+            </small>
+        </div>
+    </div>
+
+    <!-- Workflow Management -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h3 class="mb-4">
+                    <i class="bi bi-diagram-3 me-2"></i>
+                    Recruitment Workflow
+                </h3>
+                
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="workflow-step {{ 'completed' if stats.total_candidates > 0 else '' }}">
+                            <div class="step-number">1</div>
+                            <h5>Upload Resumes</h5>
+                            <p class="mb-3">Upload candidate resumes for AI-powered analysis and parsing.</p>
+                            <a href="{{ url_for('index') }}" class="quick-action-btn">
+                                <i class="bi bi-upload"></i>
+                                Upload Now
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="workflow-step {{ 'completed' if stats.total_jobs > 0 else '' }}">
+                            <div class="step-number">2</div>
+                            <h5>Create Jobs</h5>
+                            <p class="mb-3">Define job requirements and skill specifications.</p>
+                            <a href="{{ url_for('add_job_description') }}" class="quick-action-btn">
+                                <i class="bi bi-plus-circle"></i>
+                                Create Job
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="workflow-step {{ 'completed' if stats.total_rankings > 0 else '' }}">
+                            <div class="step-number">3</div>
+                            <h5>AI Screening</h5>
+                            <p class="mb-3">Let AI analyze and rank candidates against job requirements.</p>
+                            <a href="{{ url_for('job_descriptions') }}" class="quick-action-btn">
+                                <i class="bi bi-robot"></i>
+                                Start Screening
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="workflow-step">
+                            <div class="step-number">4</div>
+                            <h5>Review Results</h5>
+                            <p class="mb-3">Review AI insights and make hiring decisions.</p>
+                            <a href="{{ url_for('candidates') }}" class="quick-action-btn">
+                                <i class="bi bi-eye"></i>
+                                View Results
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-lg-6 mb-4">
+            <div class="glass-card p-4">
+                <h4 class="mb-3">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Recent Activity
+                </h4>
+                
+                <div class="recent-activity">
+                    {% if recent_activities %}
+                        {% for activity in recent_activities %}
+                        <div class="activity-item">
+                            <div class="activity-icon activity-{{ activity.type }}">
+                                <i class="bi bi-{{ activity.icon }}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ activity.title }}</div>
+                                <small class="text-muted">{{ activity.description }}</small>
+                                <div class="text-muted small">{{ activity.timestamp }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="text-muted mt-2">No recent activity</p>
+                            <a href="{{ url_for('index') }}" class="quick-action-btn">
+                                <i class="bi bi-upload"></i>
+                                Upload First Resume
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Insights -->
+        <div class="col-lg-6 mb-4">
+            <div class="glass-card p-4">
+                <h4 class="mb-3">
+                    <i class="bi bi-lightning me-2"></i>
+                    Quick Actions
+                </h4>
+                
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="{{ url_for('index') }}" class="card glass-card text-decoration-none h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-upload" style="font-size: 2rem; color: var(--neon-blue);"></i>
+                                <h6 class="mt-2">Upload Resume</h6>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-6">
+                        <a href="{{ url_for('add_job_description') }}" class="card glass-card text-decoration-none h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-briefcase-fill" style="font-size: 2rem; color: var(--neon-green);"></i>
+                                <h6 class="mt-2">Create Job</h6>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-6">
+                        <a href="{{ url_for('candidates') }}" class="card glass-card text-decoration-none h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-people-fill" style="font-size: 2rem; color: var(--neon-purple);"></i>
+                                <h6 class="mt-2">View Candidates</h6>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-6">
+                        <a href="{{ url_for('job_descriptions') }}" class="card glass-card text-decoration-none h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-graph-up" style="font-size: 2rem; color: #ffc107;"></i>
+                                <h6 class="mt-2">Rankings</h6>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- AI Status -->
+                <div class="mt-4 p-3 rounded" style="background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3);">
+                    <div class="d-flex align-items-center">
+                        <div class="ai-indicator me-3"></div>
+                        <div>
+                            <h6 class="mb-1">AI Analysis Status</h6>
+                            <small class="text-muted">
+                                {% if ai_available %}
+                                    ✅ GPT-powered analysis active
+                                {% else %}
+                                    ⚠️ Configure OpenAI API key for enhanced features
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Chart -->
+    {% if stats.total_candidates > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h4 class="mb-3">
+                    <i class="bi bi-bar-chart me-2"></i>
+                    Candidate Quality Distribution
+                </h4>
+                <div class="chart-container">
+                    <canvas id="qualityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Candidates Preview -->
+    {% if top_candidates %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>
+                        <i class="bi bi-star me-2"></i>
+                        Top Candidates
+                    </h4>
+                    <a href="{{ url_for('candidates') }}" class="quick-action-btn">
+                        View All
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="row">
+                    {% for candidate in top_candidates[:3] %}
+                    <div class="col-md-4 mb-3">
+                        <div class="candidate-card p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">{{ candidate.name }}</h6>
+                                {% if candidate.ai_quality_score > 0 %}
+                                <div class="ai-indicator" title="AI Analyzed"></div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if candidate.ai_quality_score > 0 %}
+                            <div class="mb-2">
+                                <small class="text-muted">AI Quality Score</small>
+                                <div class="progress-modern">
+                                    <div class="progress-bar" style="width: {{ candidate.ai_quality_score }}%"></div>
+                                </div>
+                                <small>{{ candidate.ai_quality_score|round(1) }}/100</small>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">Experience: {{ candidate.experience_years }} years</small>
+                            </div>
+                            
+                            <div class="skills-container">
+                                {% for skill in candidate.skills[:3] %}
+                                <span class="skill-badge">{{ skill }}</span>
+                                {% endfor %}
+                                {% if candidate.skills|length > 3 %}
+                                <span class="skill-badge">+{{ candidate.skills|length - 3 }} more</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Floating Action Button -->
+<button class="fab" onclick="window.location.href='{{ url_for('index') }}'" title="Upload Resume">
+    <i class="bi bi-plus"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+{% if stats.total_candidates > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quality Distribution Chart
+    const ctx = document.getElementById('qualityChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Excellent (80-100)', 'Good (60-79)', 'Average (40-59)', 'Below Average (0-39)'],
+                datasets: [{
+                    data: {{ quality_distribution|tojson }},
+                    backgroundColor: [
+                        'rgba(57, 255, 20, 0.8)',
+                        'rgba(0, 212, 255, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'white',
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

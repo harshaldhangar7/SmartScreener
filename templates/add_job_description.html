@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Add Job Description - Smart Resume Screener{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">Add New Job Description</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Nav tabs -->
+                    <ul class="nav nav-tabs" id="jobDescriptionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="true">
+                                <i class="bi bi-pencil-square"></i> Manual Input
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="false">
+                                <i class="bi bi-file-earmark-arrow-up"></i> Upload File
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab content -->
+                    <div class="tab-content mt-4" id="jobDescriptionTabsContent">
+                        <!-- Manual Input Tab -->
+                        <div class="tab-pane fade show active" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+                            <form action="{{ url_for('add_job_description') }}" method="post" id="manual-form">
+                                <input type="hidden" name="input_method" value="manual">
+                        <div class="mb-3">
+                            <label for="company_name" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" placeholder="e.g., Google, Microsoft, Amazon">
+                        </div>
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="required_skills" class="form-label">Required Skills</label>
+                            <textarea class="form-control" id="required_skills" name="required_skills" rows="3" placeholder="Enter skills separated by commas" required></textarea>
+                            <div class="form-text">Example: Python, JavaScript, React, SQL</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Required Education</label>
+                            <div id="education-requirements">
+                                <div class="education-requirement mb-2">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="education_types[]">
+                                                <option value="">Select Degree Type</option>
+                                                <option value="science">Science</option>
+                                                <option value="engineering">Engineering</option>
+                                                <option value="arts">Arts</option>
+                                                <option value="commerce">Commerce</option>
+                                                <option value="business">Business</option>
+                                                <option value="technology">Technology</option>
+                                                <option value="mathematics">Mathematics</option>
+                                                <option value="humanities">Humanities</option>
+                                                <option value="social_sciences">Social Sciences</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="education_levels[]" required>
+                                                <option value="">Select Degree Level</option>
+                                                <option value="phd">PhD/Doctorate</option>
+                                                <option value="master">Master's</option>
+                                                <option value="bachelor">Bachelor's</option>
+                                                <option value="associate">Associate's</option>
+                                                <option value="diploma">Diploma</option>
+                                                <option value="certificate">Certificate</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control" name="education_fields[]" placeholder="Field of Study (e.g., Computer Science)">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addEducationRequirement()">
+                                <i class="bi bi-plus-circle"></i> Add Another Education Requirement
+                            </button>
+                            <div class="form-text">Specify the degree type, level, and field of study required for this position.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="min_experience" class="form-label">Minimum Experience (years)</label>
+                            <input type="number" class="form-control" id="min_experience" name="min_experience" min="0" value="0" step="0.5">
+                        </div>
+                        
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Save Job Description
+                                    </button>
+                                    <a href="{{ url_for('job_descriptions') }}" class="btn btn-secondary">
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- File Upload Tab -->
+                        <div class="tab-pane fade" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Upload Job Description:</strong> Upload a PDF or DOC/DOCX file containing the job description. The system will automatically extract the job title, required skills, experience, and education requirements.
+                            </div>
+
+                            <form action="{{ url_for('upload_job_description') }}" method="post" enctype="multipart/form-data" id="upload-form">
+                                <input type="hidden" name="input_method" value="upload">
+
+                                <div class="mb-4">
+                                    <label for="job_file" class="form-label">Job Description File</label>
+                                    <input type="file" class="form-control" id="job_file" name="job_file" accept=".pdf,.doc,.docx" required>
+                                    <div class="form-text">Supported formats: PDF, DOC, DOCX (Max size: 10MB)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="auto_extract" name="auto_extract" checked>
+                                        <label class="form-check-label" for="auto_extract">
+                                            Automatically extract job details from the file
+                                        </label>
+                                    </div>
+                                    <div class="form-text">If unchecked, you'll need to manually review and edit the extracted information.</div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-cloud-upload"></i> Upload & Process Job Description
+                                    </button>
+                                    <a href="{{ url_for('job_descriptions') }}" class="btn btn-secondary">
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </a>
+                                </div>
+                            </form>
+
+                            <!-- Processing status (shown during upload) -->
+                            <div id="processing-status" class="mt-3" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <div class="d-flex align-items-center">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                                            <span class="visually-hidden">Processing...</span>
+                                        </div>
+                                        <strong>Processing job description file...</strong>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small>This may take a few moments depending on the file size and content.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addEducationRequirement() {
+        const container = document.getElementById('education-requirements');
+        const newRequirement = document.createElement('div');
+        newRequirement.className = 'education-requirement mb-2';
+        newRequirement.innerHTML = `
+            <div class="row">
+                <div class="col-md-4">
+                    <select class="form-select" name="education_types[]">
+                        <option value="">Select Degree Type</option>
+                        <option value="science">Science</option>
+                        <option value="engineering">Engineering</option>
+                        <option value="arts">Arts</option>
+                        <option value="commerce">Commerce</option>
+                        <option value="business">Business</option>
+                        <option value="technology">Technology</option>
+                        <option value="mathematics">Mathematics</option>
+                        <option value="humanities">Humanities</option>
+                        <option value="social_sciences">Social Sciences</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="education_levels[]" required>
+                        <option value="">Select Degree Level</option>
+                        <option value="phd">PhD/Doctorate</option>
+                        <option value="master">Master's</option>
+                        <option value="bachelor">Bachelor's</option>
+                        <option value="associate">Associate's</option>
+                        <option value="diploma">Diploma</option>
+                        <option value="certificate">Certificate</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="education_fields[]" placeholder="Field of Study (e.g., Computer Science)">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.parentElement.parentElement.remove()">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(newRequirement);
+    }
+
+    // Handle file upload form submission
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+        const fileInput = document.getElementById('job_file');
+        const file = fileInput.files[0];
+
+        if (file) {
+            // Check file size (10MB limit)
+            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+            if (file.size > maxSize) {
+                e.preventDefault();
+                alert('File size exceeds 10MB limit. Please choose a smaller file.');
+                return;
+            }
+
+            // Check file type
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!allowedTypes.includes(file.type)) {
+                e.preventDefault();
+                alert('Please select a valid PDF or DOC/DOCX file.');
+                return;
+            }
+
+            // Show processing status
+            document.getElementById('processing-status').style.display = 'block';
+        }
+    });
+
+    // Handle tab switching
+    document.querySelectorAll('#jobDescriptionTabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Hide processing status when switching tabs
+            document.getElementById('processing-status').style.display = 'none';
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Review Job Description - Smart Resume Screener{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">
+                        <i class="bi bi-eye"></i> Review Extracted Job Description
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Review Extracted Data:</strong> The system has automatically extracted information from your uploaded file. Please review and edit the details below before saving.
+                    </div>
+
+                    <form action="{{ url_for('save_reviewed_job_description') }}" method="post">
+                        <div class="mb-3">
+                            <label for="company_name" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" value="{{ job_data.company_name }}" placeholder="e.g., Google, Microsoft, Amazon">
+                        </div>
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ job_data.title }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="required_skills" class="form-label">Required Skills</label>
+                            <textarea class="form-control" id="required_skills" name="required_skills" rows="3" required>{{ ', '.join(job_data.required_skills) }}</textarea>
+                            <div class="form-text">Enter skills separated by commas</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Required Education</label>
+                            <div id="education-requirements">
+                                {% for edu in job_data.required_education %}
+                                <div class="education-requirement mb-2">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="education_types[]">
+                                                <option value="">Select Degree Type</option>
+                                                <option value="science">Science</option>
+                                                <option value="engineering">Engineering</option>
+                                                <option value="arts">Arts</option>
+                                                <option value="commerce">Commerce</option>
+                                                <option value="business">Business</option>
+                                                <option value="technology">Technology</option>
+                                                <option value="mathematics">Mathematics</option>
+                                                <option value="humanities">Humanities</option>
+                                                <option value="social_sciences">Social Sciences</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="education_levels[]" required>
+                                                <option value="">Select Degree Level</option>
+                                                <option value="phd" {% if 'PhD' in edu.degree %}selected{% endif %}>PhD/Doctorate</option>
+                                                <option value="master" {% if 'Master' in edu.degree %}selected{% endif %}>Master's</option>
+                                                <option value="bachelor" {% if 'Bachelor' in edu.degree %}selected{% endif %}>Bachelor's</option>
+                                                <option value="associate">Associate's</option>
+                                                <option value="diploma">Diploma</option>
+                                                <option value="certificate">Certificate</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control" name="education_fields[]" value="{{ edu.field }}" placeholder="Field of Study (e.g., Computer Science)">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% if not job_data.required_education %}
+                                <div class="education-requirement mb-2">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="education_types[]">
+                                                <option value="">Select Degree Type</option>
+                                                <option value="science">Science</option>
+                                                <option value="engineering">Engineering</option>
+                                                <option value="arts">Arts</option>
+                                                <option value="commerce">Commerce</option>
+                                                <option value="business">Business</option>
+                                                <option value="technology">Technology</option>
+                                                <option value="mathematics">Mathematics</option>
+                                                <option value="humanities">Humanities</option>
+                                                <option value="social_sciences">Social Sciences</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="education_levels[]" required>
+                                                <option value="">Select Degree Level</option>
+                                                <option value="phd">PhD/Doctorate</option>
+                                                <option value="master">Master's</option>
+                                                <option value="bachelor">Bachelor's</option>
+                                                <option value="associate">Associate's</option>
+                                                <option value="diploma">Diploma</option>
+                                                <option value="certificate">Certificate</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control" name="education_fields[]" placeholder="Field of Study (e.g., Computer Science)">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addEducationRequirement()">
+                                <i class="bi bi-plus-circle"></i> Add Another Education Requirement
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="min_experience" class="form-label">Minimum Experience (years)</label>
+                            <input type="number" class="form-control" id="min_experience" name="min_experience" min="0" value="{{ job_data.min_experience }}" step="0.5">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Save Job Description
+                            </button>
+                            <a href="{{ url_for('add_job_description') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Upload
+                            </a>
+                            <a href="{{ url_for('job_descriptions') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addEducationRequirement() {
+        const container = document.getElementById('education-requirements');
+        const newRequirement = document.createElement('div');
+        newRequirement.className = 'education-requirement mb-2';
+        newRequirement.innerHTML = `
+            <div class="row">
+                <div class="col-md-4">
+                    <select class="form-select" name="education_types[]">
+                        <option value="">Select Degree Type</option>
+                        <option value="science">Science</option>
+                        <option value="engineering">Engineering</option>
+                        <option value="arts">Arts</option>
+                        <option value="commerce">Commerce</option>
+                        <option value="business">Business</option>
+                        <option value="technology">Technology</option>
+                        <option value="mathematics">Mathematics</option>
+                        <option value="humanities">Humanities</option>
+                        <option value="social_sciences">Social Sciences</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="education_levels[]" required>
+                        <option value="">Select Degree Level</option>
+                        <option value="phd">PhD/Doctorate</option>
+                        <option value="master">Master's</option>
+                        <option value="bachelor">Bachelor's</option>
+                        <option value="associate">Associate's</option>
+                        <option value="diploma">Diploma</option>
+                        <option value="certificate">Certificate</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="education_fields[]" placeholder="Field of Study (e.g., Computer Science)">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.parentElement.parentElement.remove()">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(newRequirement);
+    }
+</script>
+{% endblock %}

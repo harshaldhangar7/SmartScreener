@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Resume - Smart Resume Screener{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-hero {
+        background: var(--gradient-primary);
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .upload-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+    }
+    
+    @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .upload-hero h1 {
+        position: relative;
+        z-index: 2;
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .upload-hero p {
+        position: relative;
+        z-index: 2;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.2rem;
+    }
+    
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+    
+    .feature-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(31, 38, 135, 0.4);
+    }
+    
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--gradient-success);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        font-size: 24px;
+        color: white;
+    }
+    
+    .upload-form-container {
+        background: var(--glass-bg);
+        backdrop-filter: blur(15px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 40px;
+        position: relative;
+    }
+    
+    .consent-card {
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    .quick-links-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .quick-link-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        text-decoration: none;
+        color: white;
+        transition: all 0.3s ease;
+        display: block;
+    }
+    
+    .quick-link-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(31, 38, 135, 0.4);
+        color: white;
+    }
+    
+    .quick-link-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Hero Section -->
+    <div class="upload-hero">
+        <h1>
+            <i class="bi bi-robot me-2"></i>
+            AI-Powered Resume Analysis
+        </h1>
+        <p>Upload resumes and let our advanced AI analyze, parse, and provide intelligent insights</p>
+        <div class="ai-indicator" title="AI Analysis Ready"></div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Upload Form -->
+            <div class="upload-form-container">
+                <div class="text-center mb-4">
+                    <h3>
+                        <i class="bi bi-upload me-2"></i>
+                        Upload Resume
+                    </h3>
+                    <p class="text-muted">Drag and drop or click to select resume files</p>
+                </div>
+
+                <form action="{{ url_for('upload_resume') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <!-- Drag and Drop Area -->
+                    <div class="upload-area mb-4" id="uploadArea">
+                        <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx" style="display: none;">
+                        <div class="drop-text">
+                            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: var(--neon-blue);"></i>
+                            <h4>Drag & Drop Resume Here</h4>
+                            <p>or click to browse files</p>
+                            <small>Supports PDF, DOC, and DOCX files (Max 10MB)</small>
+                        </div>
+                    </div>
+
+                    <!-- File Preview Area -->
+                    <div id="filePreview"></div>
+                    
+                    <!-- Upload Progress -->
+                    <div id="uploadProgress"></div>
+
+                    <!-- Analysis Options -->
+                    <div class="analysis-options mb-4">
+                        <h5 class="text-center mb-3">
+                            <i class="bi bi-gear me-2"></i>
+                            Choose Analysis Type
+                        </h5>
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="analysis_type" id="ai_analysis" value="ai" checked>
+                                    <label class="form-check-label" for="ai_analysis">
+                                        <i class="bi bi-robot me-2"></i>
+                                        Analyze with AI
+                                        <small class="d-block text-muted">GPT-powered deep analysis</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="analysis_type" id="traditional_analysis" value="traditional">
+                                    <label class="form-check-label" for="traditional_analysis">
+                                        <i class="bi bi-cpu me-2"></i>
+                                        Traditional Analysis
+                                        <small class="d-block text-muted">Rule-based parsing only</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consent -->
+                    <div class="consent-card">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="consent" name="consent" required>
+                            <label class="form-check-label" for="consent">
+                                <i class="bi bi-shield-check me-2"></i>
+                                I consent to the processing of my resume data as per the Privacy Policy
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            Your data is processed securely and used only for analysis purposes.
+                        </small>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit" class="btn-modern" id="submitBtn">
+                            <i class="bi bi-robot me-2"></i>
+                            Start Analysis
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Features -->
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-cpu"></i>
+                    </div>
+                    <h5>GPT-5 Analysis</h5>
+                    <p>Advanced AI parsing and intelligent resume analysis</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h5>Smart Scoring</h5>
+                    <p>Comprehensive scoring with detailed explanations</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5>Bias-Free</h5>
+                    <p>Objective AI assessment reduces human bias</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-lightning"></i>
+                    </div>
+                    <h5>Real-time</h5>
+                    <p>Instant analysis with live progress indicators</p>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="quick-links-grid">
+                <a href="{{ url_for('candidates') }}" class="quick-link-card">
+                    <i class="bi bi-people-fill quick-link-icon" style="color: var(--neon-purple);"></i>
+                    <h6>View Candidates</h6>
+                    <small>Browse analyzed resumes</small>
+                </a>
+                
+                <a href="{{ url_for('add_job_description') }}" class="quick-link-card">
+                    <i class="bi bi-briefcase-fill quick-link-icon" style="color: var(--neon-green);"></i>
+                    <h6>Create Job</h6>
+                    <small>Define job requirements</small>
+                </a>
+                
+                <a href="{{ url_for('job_descriptions') }}" class="quick-link-card">
+                    <i class="bi bi-graph-up quick-link-icon" style="color: #ffc107;"></i>
+                    <h6>AI Screening</h6>
+                    <small>Match candidates to jobs</small>
+                </a>
+                
+                <a href="{{ url_for('dashboard') }}" class="quick-link-card">
+                    <i class="bi bi-speedometer2 quick-link-icon" style="color: var(--neon-blue);"></i>
+                    <h6>Dashboard</h6>
+                    <small>View analytics</small>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('resume');
+    const form = document.getElementById('uploadForm');
+    
+    // Make upload area clickable
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    // Handle form submission with progress
+    form.addEventListener('submit', function(e) {
+        const fileInput = document.getElementById('resume');
+        const consent = document.getElementById('consent');
+        
+        if (!fileInput.files.length) {
+            e.preventDefault();
+            window.smartScreener.showNotification('Please select a resume file.', 'error');
+            return;
+        }
+        
+        if (!consent.checked) {
+            e.preventDefault();
+            window.smartScreener.showNotification('Please consent to data processing.', 'error');
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<div class="loading-spinner me-2"></div>Processing...';
+        submitBtn.disabled = true;
+        
+        // Show upload progress
+        window.smartScreener.showUploadProgress();
+    });
+});
+</script>
+{% endblock %}
